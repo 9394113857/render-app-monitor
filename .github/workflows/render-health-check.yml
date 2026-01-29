@@ -1,0 +1,40 @@
+name: Render App Health Check
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+
+  workflow_dispatch:
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Render App
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://flask-crud-sqlite-supabase-mxs2.onrender.com)
+          echo "HTTP status: $STATUS"
+
+          if [ "$STATUS" -ne 200 ]; then
+            echo "APP_DOWN=true" >> $GITHUB_ENV
+          else
+            echo "APP_DOWN=false" >> $GITHUB_ENV
+          fi
+
+      - name: Send email if app is DOWN
+        if: env.APP_DOWN == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "❌ Render App DOWN"
+          body: |
+            Render app is not responding.
+
+            URL:
+            https://flask-crud-sqlite-supabase-mxs2.onrender.com
+          to: your_email@gmail.com
+          from: Render Monitor
