@@ -1,9 +1,24 @@
+# ============================================================
+# FILE: .github/workflows/render-health-check.yml
+#
+# PURPOSE:
+#   Monitor Render app health every 10 minutes
+#   Send email alert ONLY when app is DOWN
+#
+# WHAT YOU MUST DO:
+#   - Replace email addresses with YOUR emails
+#   - Add GitHub Secrets (shown below)
+#
+# ============================================================
+
 name: Render App Health Check
 
 on:
+  # Run every 10 minutes
   schedule:
     - cron: "*/10 * * * *"
 
+  # Allow manual run from GitHub UI
   workflow_dispatch:
 
 jobs:
@@ -11,9 +26,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # ------------------------------------------------------
+      # STEP 1: Ping Render App
+      # ------------------------------------------------------
       - name: Ping Render App
         run: |
-          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://flask-crud-sqlite-supabase-mxs2.onrender.com)
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://YOUR_RENDER_APP_URL.onrender.com)
           echo "HTTP status: $STATUS"
 
           if [ "$STATUS" -ne 200 ]; then
@@ -22,19 +40,81 @@ jobs:
             echo "APP_DOWN=false" >> $GITHUB_ENV
           fi
 
+      # ------------------------------------------------------
+      # STEP 2: Send Email ONLY if App is DOWN
+      # ------------------------------------------------------
       - name: Send email if app is DOWN
         if: env.APP_DOWN == 'true'
         uses: dawidd6/action-send-mail@v3
         with:
+          # Gmail SMTP configuration
           server_address: smtp.gmail.com
           server_port: 587
+
+          # 🔐 AUTHENTICATION (FROM GitHub Secrets)
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
+
+          # 📧 EMAIL CONTENT
           subject: "❌ Render App DOWN"
           body: |
-            Render app is not responding.
+            ALERT 🚨
 
-            URL:
-            https://flask-crud-sqlite-supabase-mxs2.onrender.com
-          to: your_email@gmail.com
-          from: Render Monitor
+            Your Render app is NOT responding.
+
+            App URL:
+            https://YOUR_RENDER_APP_URL.onrender.com
+
+            Time:
+            GitHub Actions detected a failure.
+
+          # 📬 RECIPIENT (PUT YOUR EMAIL HERE)
+          to: YOUR_RECEIVER_EMAIL@gmail.com
+
+          # ✉️ DISPLAY NAME OF SENDER
+          from: Render App Monitor
+
+# ============================================================
+# GITHUB SECRETS YOU MUST ADD (VERY IMPORTANT)
+# ============================================================
+#
+# Go to:
+# GitHub Repo → Settings → Secrets and variables → Actions
+#
+# ADD THESE SECRETS:
+#
+# 1) EMAIL_USERNAME
+#    Value example:
+#    alerts.yourname@gmail.com
+#
+# 2) EMAIL_PASSWORD
+#    Value example:
+#    abcd efgh ijkl mnop   (GMAIL APP PASSWORD)
+#
+# ⚠️ DO NOT USE NORMAL GMAIL PASSWORD
+# ⚠️ ENABLE 2-STEP VERIFICATION IN GMAIL
+#
+# ============================================================
+# WHAT GOES WHERE (FINAL CLARITY)
+# ============================================================
+#
+# IN CODE (SAFE):
+# - to: YOUR_RECEIVER_EMAIL@gmail.com
+# - subject
+# - body
+# - app URL
+#
+# IN GITHUB SECRETS (SENSITIVE):
+# - EMAIL_USERNAME
+# - EMAIL_PASSWORD
+#
+# ============================================================
+# FINAL SUMMARY
+# ============================================================
+# ✔ Runs every 10 minutes
+# ✔ Manual run supported
+# ✔ No email spam (only on DOWN)
+# ✔ Secrets are secure
+# ✔ Production-grade monitoring
+#
+# ============================================================
