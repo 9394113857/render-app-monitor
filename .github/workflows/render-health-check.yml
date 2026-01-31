@@ -2,7 +2,7 @@
 # FILE: .github/workflows/render-health-check.yml
 #
 # PURPOSE:
-#   Monitor Render app health every 10 minutes
+#   Monitor Render app health once per day at 12:00 AM
 #   Send email alert ONLY when app is DOWN
 #
 # ============================================================
@@ -10,9 +10,9 @@
 name: Render App Health Check
 
 on:
-  # Run every 10 minutes
+  # Run every day at 12:00 AM (midnight, UTC)
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "0 0 * * *"
 
   # Allow manual run from GitHub UI
   workflow_dispatch:
